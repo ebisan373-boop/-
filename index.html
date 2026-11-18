@@ -66,12 +66,12 @@ let previewStart=performance.now(),recording=false;
 const $=id=>document.getElementById(id);
 function roundedBackground(t){
  const w=1280,h=720;const g=ctx.createLinearGradient(0,0,w,h);
- g.addColorStop(0,'#ffb9d8');g.addColorStop(.48,'#b9d9ff');g.addColorStop(1,'#d0baff');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ g.addColorStop(0,'#ffb9d8');g.addColorStop(.48,'#b9dcff');g.addColorStop(1,'#cbb8ff');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  for(let i=0;i<9;i++){
   const x=640+Math.sin(t*.00022*Number($('speed').value)+i*2.1)*430;
   const y=360+Math.cos(t*.00017*Number($('speed').value)+i*1.7)*245;
   const r=110+(i%3)*34,rg=ctx.createRadialGradient(x,y,0,x,y,r);
-  rg.addColorStop(0,['#fff5fb22','#f3f0ff22','#d9f8ff22'][i%3]);rg.addColorStop(1,'#ffffff00');ctx.fillStyle=rg;ctx.fillRect(x-r,y-r,r*2,r*2);
+  rg.addColorStop(0,['#fff5fb18','#f3f0ff18','#d9f8ff18'][i%3]);rg.addColorStop(1,'#ffffff00');ctx.fillStyle=rg;ctx.fillRect(x-r,y-r,r*2,r*2);
  }
  for(let i=0;i<38;i++){
   const x=(i*173+Math.sin(t*.0003+i)*32)%1280;const y=(i*97+t*.012*(.4+(i%4)*.2))%720;
@@ -81,7 +81,7 @@ function roundedBackground(t){
 }
 function draw(t=performance.now(),level=0){
  roundedBackground(t);const cx=640,cy=360,size=Number($('size').value),strength=Number($('wave').value);
- const halo=ctx.createRadialGradient(cx,cy,size*.35,cx,cy,size*1.8);halo.addColorStop(0,'#ffffff22');halo.addColorStop(1,'#ffffff00');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,size*1.8,0,Math.PI*2);ctx.fill();
+ const halo=ctx.createRadialGradient(cx,cy,size*.35,cx,cy,size*1.8);halo.addColorStop(0,'#ffffff18');halo.addColorStop(1,'#ffffff00');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,size*1.8,0,Math.PI*2);ctx.fill();
  const bars=144,base=size*.69,amp=level*strength;
  for(let i=0;i<bars;i++){
   const a=i/bars*Math.PI*2-Math.PI/2,wave=.5+.5*Math.sin(i*.37+t*.003),pulse=amp*(.35+wave*.95),len=8+pulse*105;
@@ -92,7 +92,7 @@ function draw(t=performance.now(),level=0){
  ctx.strokeStyle='#ffffffaa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,base+5,0,Math.PI*2);ctx.stroke();
  ctx.save();ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.clip();
  if(img){const scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,cx-w/2,cy-h/2,w,h)}
- else{const g=ctx.createLinearGradient(cx-size/2,cy-size/2,cx+size/2,cy+size/2);g.addColorStop(0,'#ffb5d8');g.addColorStop(1,'#91caff');ctx.fillStyle=g;ctx.fillRect(cx-size/2,cy-size/2,size,size);ctx.fillStyle='#fff';ctx.font='70px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♡',cx,cy)}
+ else{const g=ctx.createLinearGradient(cx-size/2,cy-size/2,cx+size/2,cy+size/2);g.addColorStop(0,'#ffd3e8');g.addColorStop(1,'#b8dfff');ctx.fillStyle=g;ctx.fillRect(cx-size/2,cy-size/2,size,size);ctx.fillStyle='#fff';ctx.font='70px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♡',cx,cy)}
  ctx.restore();ctx.strokeStyle='#fff';ctx.lineWidth=8;ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.stroke();
 }
 function loop(t){let level=0;if(analyser&&recording){const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];level=Math.min(1.8,(sum/data.length)/75)}draw(t,level);raf=requestAnimationFrame(loop)}
