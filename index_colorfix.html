@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ボイスムービーつくーる</title>
+<style>
+:root{--pink:#ff9ecb;--blue:#91dfff;--purple:#b9a0ff;--ink:#554b69}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:var(--ink);background:linear-gradient(135deg,#fff0f7,#effaff 48%,#f4efff)}
+header{text-align:center;padding:25px 16px 12px}h1{margin:0;font-size:clamp(24px,4vw,36px);letter-spacing:.06em}header p{margin:7px 0;color:#887c9d;font-size:13px}
+main{width:min(1180px,94vw);margin:0 auto 36px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:20px}
+.panel{background:#ffffffc9;border:1px solid #fff;border-radius:23px;padding:18px;box-shadow:0 12px 36px #9d8cc51a;backdrop-filter:blur(12px)}
+.preview-wrap{width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f8eafa;position:relative}
+canvas{width:100%;height:100%;display:block}
+.preview-note{font-size:12px;color:#9388a4;margin:10px 2px 0}
+h2{font-size:16px;margin:0 0 13px}section+section{margin-top:20px}
+label{display:block;font-size:13px;font-weight:650;margin:0 0 7px}
+input[type=file]{width:100%;font-size:13px}input[type=range]{width:100%;accent-color:#d58fce}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+button{border:0;border-radius:13px;padding:11px 14px;font-weight:700;font-size:13px;cursor:pointer;color:#594e70;background:linear-gradient(100deg,#ffd3e8,#d8d0ff)}button.secondary{background:#f1edf8;color:#706582}button:disabled{opacity:.45;cursor:not-allowed}
+#status{font-size:12px;color:#817591;min-height:18px;margin-top:9px;line-height:1.5}
+small{font-size:11px;color:#91869f;line-height:1.5;display:block;margin-top:7px}
+.control{padding:12px;border-radius:15px;background:#faf7ff;margin-top:10px}
+.value{float:right;font-weight:500;color:#8d7ca7}
+@media(max-width:800px){main{grid-template-columns:1fr}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<header><h1>♡ ボイスムービーつくーる ♡</h1><p>声に合わせて、きらめくパステルムービーを。</p></header>
+<main>
+<div class="panel">
+  <div class="preview-wrap"><canvas id="stage" width="1280" height="720"></canvas></div>
+  <div class="preview-note">プレビューは常に1280 × 720で描画されます。</div>
+  <section style="margin-top:18px">
+    <h2>🎙 音声を録音</h2>
+    <div class="row"><button id="record">● 録音開始</button><button id="stop" class="secondary" disabled>■ 録音停止</button></div>
+    <small>録音開始を押してマイクを許可してください。停止後、音声がムービーに同期します。</small>
+    <audio id="audio" controls style="width:100%;margin-top:10px;display:none"></audio>
+  </section>
+</div>
+<div class="panel">
+  <section>
+    <h2>🖼 アイコン画像</h2>
+    <label for="image">画像を選択</label><input id="image" type="file" accept="image/*">
+    <small>画像は自動で正円に切り抜き、中央に配置します。</small>
+  </section>
+  <section>
+    <h2>✨ デザイン調整</h2>
+    <div class="control"><label for="size">アイコンの大きさ <span class="value" id="sizeVal">210</span></label><input id="size" type="range" min="120" max="300" value="210"></div>
+    <div class="control"><label for="wave">波形の強さ <span class="value" id="waveVal">1.0</span></label><input id="wave" type="range" min=".4" max="2" step=".1" value="1"></div>
+    <div class="control"><label for="speed">背景の動き <span class="value" id="speedVal">1.0</span></label><input id="speed" type="range" min=".3" max="2" step=".1" value="1"></div>
+  </section>
+  <section>
+    <h2>🎬 ムービーを書き出し</h2>
+    <button id="export" style="width:100%">MOV形式で書き出す</button>
+    <small>録音した音声とアニメーションを合成します。MOV変換には初回のみ変換エンジンの読み込みが必要です。処理中はこのページを閉じないでください。</small>
+    <div id="status">画像を選び、録音すると準備完了です。</div>
+  </section>
+</div>
+</main>
+<script>
+const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d');
+const audio=document.getElementById('audio'),statusEl=document.getElementById('status');
+let img=null,recorder=null,chunks=[],audioBlob=null,audioUrl=null,stream=null,source=null,analyser=null,mediaDest=null,raf=0;
+let previewStart=performance.now(),recording=false;
+const $=id=>document.getElementById(id);
+function roundedBackground(t){
+ const w=1280,h=720;const g=ctx.createLinearGradient(0,0,w,h);
+ g.addColorStop(0,'#ffb9d8');g.addColorStop(.48,'#b9d9ff');g.addColorStop(1,'#d0baff');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ for(let i=0;i<9;i++){
+  const x=640+Math.sin(t*.00022*Number($('speed').value)+i*2.1)*430;
+  const y=360+Math.cos(t*.00017*Number($('speed').value)+i*1.7)*245;
+  const r=110+(i%3)*34,rg=ctx.createRadialGradient(x,y,0,x,y,r);
+  rg.addColorStop(0,['#fff5fb22','#f3f0ff22','#d9f8ff22'][i%3]);rg.addColorStop(1,'#ffffff00');ctx.fillStyle=rg;ctx.fillRect(x-r,y-r,r*2,r*2);
+ }
+ for(let i=0;i<38;i++){
+  const x=(i*173+Math.sin(t*.0003+i)*32)%1280;const y=(i*97+t*.012*(.4+(i%4)*.2))%720;
+  ctx.globalAlpha=.22+.3*(.5+.5*Math.sin(t*.002+i));ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,1.5+(i%3),0,Math.PI*2);ctx.fill();
+ }
+ ctx.globalAlpha=1;
+}
+function draw(t=performance.now(),level=0){
+ roundedBackground(t);const cx=640,cy=360,size=Number($('size').value),strength=Number($('wave').value);
+ const halo=ctx.createRadialGradient(cx,cy,size*.35,cx,cy,size*1.8);halo.addColorStop(0,'#ffffff22');halo.addColorStop(1,'#ffffff00');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,size*1.8,0,Math.PI*2);ctx.fill();
+ const bars=144,base=size*.69,amp=level*strength;
+ for(let i=0;i<bars;i++){
+  const a=i/bars*Math.PI*2-Math.PI/2,wave=.5+.5*Math.sin(i*.37+t*.003),pulse=amp*(.35+wave*.95),len=8+pulse*105;
+  const x1=cx+Math.cos(a)*base,y1=cy+Math.sin(a)*base,x2=cx+Math.cos(a)*(base+len),y2=cy+Math.sin(a)*(base+len);
+  const grad=ctx.createLinearGradient(x1,y1,x2,y2);grad.addColorStop(0,'#ff9fca');grad.addColorStop(.52,'#a8b8ff');grad.addColorStop(1,'#8ce3ef');
+  ctx.strokeStyle=grad;ctx.lineWidth=2.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+ }
+ ctx.strokeStyle='#ffffffaa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,base+5,0,Math.PI*2);ctx.stroke();
+ ctx.save();ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.clip();
+ if(img){const scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,cx-w/2,cy-h/2,w,h)}
+ else{const g=ctx.createLinearGradient(cx-size/2,cy-size/2,cx+size/2,cy+size/2);g.addColorStop(0,'#ffb5d8');g.addColorStop(1,'#91caff');ctx.fillStyle=g;ctx.fillRect(cx-size/2,cy-size/2,size,size);ctx.fillStyle='#fff';ctx.font='70px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♡',cx,cy)}
+ ctx.restore();ctx.strokeStyle='#fff';ctx.lineWidth=8;ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.stroke();
+}
+function loop(t){let level=0;if(analyser&&recording){const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];level=Math.min(1.8,(sum/data.length)/75)}draw(t,level);raf=requestAnimationFrame(loop)}
+function setStatus(s){statusEl.textContent=s}
+$('image').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f),im=new Image();im.onload=()=>{img=im;URL.revokeObjectURL(url)};im.src=url});
+['size','wave','speed'].forEach(id=>$(id).addEventListener('input',()=>{$(id+'Val').textContent=id==='size'?$(id).value:Number($(id).value).toFixed(1)}));
+$('record').onclick=async()=>{
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:true});const ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();
+  source=ac.createMediaStreamSource(stream);analyser=ac.createAnalyser();analyser.fftSize=512;mediaDest=ac.createMediaStreamDestination();source.connect(analyser);source.connect(mediaDest);
+  const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';recorder=new MediaRecorder(mediaDest.stream,{mimeType:mime});chunks=[];
+  recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  recorder.onstop=()=>{audioBlob=new Blob(chunks,{type:'audio/webm'});if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(audioBlob);audio.src=audioUrl;audio.style.display='block';audio.load();stream.getTracks().forEach(tr=>tr.stop());recording=false;analyser=null;$('record').disabled=false;$('stop').disabled=true;setStatus('録音できました。プレビューで音声を確認してMOVを書き出せます。')};
+  recorder.start();recording=true;$('record').disabled=true;$('stop').disabled=false;setStatus('録音中です。話し終えたら録音停止を押してください。');
+ }catch(err){setStatus('マイクを利用できませんでした。ブラウザのマイク許可とHTTPS接続を確認してください。')}
+};
+$('stop').onclick=()=>{if(recorder&&recorder.state!=='inactive')recorder.stop()};
+let ffmpegInstance=null;
+async function loadFFmpeg(){
+ if(ffmpegInstance&&ffmpegInstance.isLoaded())return ffmpegInstance;
+ setStatus('MOV変換エンジンを読み込んでいます…');
+ if(!window.FFmpeg){await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('FFmpegライブラリを読み込めませんでした'));document.head.appendChild(script)})}
+ const {createFFmpeg}=window.FFmpeg;
+ ffmpegInstance=createFFmpeg({
+  log:true,
+  mainName:'main',
+  corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
+  progress:({ratio})=>setStatus('MOVに変換中… '+Math.round(Math.max(0,Math.min(1,ratio))*100)+'%')
+ });
+ try{await ffmpegInstance.load()}catch(error){ffmpegInstance=null;throw error}
+ return ffmpegInstance;
+}
+$('export').onclick=async()=>{
+ if(!audioBlob){setStatus('先に音声を録音してください。');return}
+ if(!window.isSecureContext){setStatus('録音・書き出しはHTTPSまたはlocalhostで開いてください。');return}
+ $('export').disabled=true;
+ try{
+  setStatus('動画を録画しています…');const ac=new (window.AudioContext||window.webkitAudioContext)();const src=ac.createMediaElementSource(audio),dest=ac.createMediaStreamDestination();
+  analyser=ac.createAnalyser();analyser.fftSize=512;src.connect(analyser);analyser.connect(dest);src.connect(ac.destination);recording=true;
+  const videoStream=canvas.captureStream(30),combined=new MediaStream([...videoStream.getVideoTracks(),...dest.stream.getAudioTracks()]);
+  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';const mr=new MediaRecorder(combined,{mimeType:mime,videoBitsPerSecond:6500000});
+  const parts=[];mr.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};const finished=new Promise(resolve=>mr.onstop=()=>resolve(new Blob(parts,{type:'video/webm'})));
+  audio.currentTime=0;await ac.resume();await audio.play();mr.start(250);await new Promise(resolve=>{audio.onended=resolve});mr.stop();const webm=await finished;
+  {const checkUrl=URL.createObjectURL(webm),checkLink=document.createElement('a');checkLink.href=checkUrl;checkLink.download='voice-movie-before-conversion.webm';checkLink.click();setTimeout(()=>URL.revokeObjectURL(checkUrl),60000)}
+  recording=false;analyser=null;combined.getTracks().forEach(t=>t.stop());src.disconnect();await ac.close();
+  setStatus('MOV変換エンジンを読み込んでいます（初回は時間がかかります）…');const ff=await loadFFmpeg();
+  ff.FS('writeFile','input.webm',new Uint8Array(await webm.arrayBuffer()));setStatus('MOVに変換中…');
+  await ff.run('-i','input.webm','-vf','format=yuv420p','-c:v','libx264','-pix_fmt','yuv420p','-preset','ultrafast','-crf','18','-c:a','aac','-b:a','192k','-movflags','+faststart','output.mov');
+  const out=ff.FS('readFile','output.mov'),mov=new Blob([out.buffer],{type:'video/quicktime'}),url=URL.createObjectURL(mov),a=document.createElement('a');a.href=url;a.download='voice-movie.mov';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);setStatus('完成しました！ voice-movie.mov を保存しました。');
+ }catch(err){console.error(err);setStatus('書き出しに失敗しました。'+(err&&err.message?' ('+err.message+')':'')+' ブラウザのコンソールも確認してください。')}
+ finally{$('export').disabled=false}
+};
+draw();loop();
+</script>
+</body>
+</html>
