@@ -59,29 +59,31 @@ small{font-size:11px;color:#91869f;line-height:1.5;display:block;margin-top:7px}
 </div>
 </main>
 <script>
-const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d');
+const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d',{alpha:false, desynchronized:false});
 const audio=document.getElementById('audio'),statusEl=document.getElementById('status');
 let img=null,recorder=null,chunks=[],audioBlob=null,audioUrl=null,stream=null,source=null,analyser=null,mediaDest=null,raf=0;
 let previewStart=performance.now(),recording=false;
 const $=id=>document.getElementById(id);
 function roundedBackground(t){
+ // Keep every captured frame fully opaque; avoid VP9 alpha-channel fade/compositing on mobile players.
+ ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
  const w=1280,h=720;const g=ctx.createLinearGradient(0,0,w,h);
- g.addColorStop(0,'#ffb9d8');g.addColorStop(.48,'#b9dcff');g.addColorStop(1,'#cbb8ff');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ g.addColorStop(0,'#ff8fc4');g.addColorStop(.48,'#8fcaff');g.addColorStop(1,'#a994ff');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  for(let i=0;i<9;i++){
   const x=640+Math.sin(t*.00022*Number($('speed').value)+i*2.1)*430;
   const y=360+Math.cos(t*.00017*Number($('speed').value)+i*1.7)*245;
   const r=110+(i%3)*34,rg=ctx.createRadialGradient(x,y,0,x,y,r);
-  rg.addColorStop(0,['#fff5fb18','#f3f0ff18','#d9f8ff18'][i%3]);rg.addColorStop(1,'#ffffff00');ctx.fillStyle=rg;ctx.fillRect(x-r,y-r,r*2,r*2);
+  rg.addColorStop(0,['#ffb5d718','#b9dfff18','#c9b5ff18'][i%3]);rg.addColorStop(1,'#ffffff00');ctx.fillStyle=rg;ctx.fillRect(x-r,y-r,r*2,r*2);
  }
  for(let i=0;i<38;i++){
   const x=(i*173+Math.sin(t*.0003+i)*32)%1280;const y=(i*97+t*.012*(.4+(i%4)*.2))%720;
-  ctx.globalAlpha=.22+.3*(.5+.5*Math.sin(t*.002+i));ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,1.5+(i%3),0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.08+.12*(.5+.5*Math.sin(t*.002+i));ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,1.5+(i%3),0,Math.PI*2);ctx.fill();
  }
  ctx.globalAlpha=1;
 }
 function draw(t=performance.now(),level=0){
  roundedBackground(t);const cx=640,cy=360,size=Number($('size').value),strength=Number($('wave').value);
- const halo=ctx.createRadialGradient(cx,cy,size*.35,cx,cy,size*1.8);halo.addColorStop(0,'#ffffff18');halo.addColorStop(1,'#ffffff00');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,size*1.8,0,Math.PI*2);ctx.fill();
+ const halo=ctx.createRadialGradient(cx,cy,size*.35,cx,cy,size*1.8);halo.addColorStop(0,'#ffffff08');halo.addColorStop(1,'#ffffff00');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,size*1.8,0,Math.PI*2);ctx.fill();
  const bars=144,base=size*.69,amp=level*strength;
  for(let i=0;i<bars;i++){
   const a=i/bars*Math.PI*2-Math.PI/2,wave=.5+.5*Math.sin(i*.37+t*.003),pulse=amp*(.35+wave*.95),len=8+pulse*105;
@@ -133,14 +135,14 @@ $('export').onclick=async()=>{
   setStatus('動画を録画しています…');const ac=new (window.AudioContext||window.webkitAudioContext)();const src=ac.createMediaElementSource(audio),dest=ac.createMediaStreamDestination();
   analyser=ac.createAnalyser();analyser.fftSize=512;src.connect(analyser);analyser.connect(dest);src.connect(ac.destination);recording=true;
   const videoStream=canvas.captureStream(30),combined=new MediaStream([...videoStream.getVideoTracks(),...dest.stream.getAudioTracks()]);
-  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';const mr=new MediaRecorder(combined,{mimeType:mime,videoBitsPerSecond:6500000});
+  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'video/webm';const mr=new MediaRecorder(combined,{mimeType:mime,videoBitsPerSecond:6500000});
   const parts=[];mr.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};const finished=new Promise(resolve=>mr.onstop=()=>resolve(new Blob(parts,{type:'video/webm'})));
   audio.currentTime=0;await ac.resume();await audio.play();mr.start(250);await new Promise(resolve=>{audio.onended=resolve});mr.stop();const webm=await finished;
   {const checkUrl=URL.createObjectURL(webm),checkLink=document.createElement('a');checkLink.href=checkUrl;checkLink.download='voice-movie-before-conversion.webm';checkLink.click();setTimeout(()=>URL.revokeObjectURL(checkUrl),60000)}
   recording=false;analyser=null;combined.getTracks().forEach(t=>t.stop());src.disconnect();await ac.close();
   setStatus('MOV変換エンジンを読み込んでいます（初回は時間がかかります）…');const ff=await loadFFmpeg();
   ff.FS('writeFile','input.webm',new Uint8Array(await webm.arrayBuffer()));setStatus('MOVに変換中…');
-  await ff.run('-i','input.webm','-vf','format=yuv420p','-c:v','libx264','-pix_fmt','yuv420p','-preset','ultrafast','-crf','18','-c:a','aac','-b:a','192k','-movflags','+faststart','output.mov');
+  await ff.run('-i','input.webm','-vf','scale=in_color_matrix=bt601:out_color_matrix=bt709:out_range=tv,format=yuv420p','-c:v','libx264','-pix_fmt','yuv420p','-color_range','tv','-colorspace','bt709','-color_primaries','bt709','-color_trc','bt709','-preset','ultrafast','-crf','18','-c:a','aac','-b:a','192k','-movflags','+faststart','output.mov');
   const out=ff.FS('readFile','output.mov'),mov=new Blob([out.buffer],{type:'video/quicktime'}),url=URL.createObjectURL(mov),a=document.createElement('a');a.href=url;a.download='voice-movie.mov';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);setStatus('完成しました！ voice-movie.mov を保存しました。');
  }catch(err){console.error(err);setStatus('書き出しに失敗しました。'+(err&&err.message?' ('+err.message+')':'')+' ブラウザのコンソールも確認してください。')}
  finally{$('export').disabled=false}
