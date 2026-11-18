@@ -68,7 +68,7 @@ function roundedBackground(t){
  // Keep every captured frame fully opaque; avoid VP9 alpha-channel fade/compositing on mobile players.
  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
  const w=1280,h=720;const g=ctx.createLinearGradient(0,0,w,h);
- g.addColorStop(0,'#ff8fc4');g.addColorStop(.48,'#8fcaff');g.addColorStop(1,'#a994ff');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ g.addColorStop(0,'#f7b6d2');g.addColorStop(.48,'#b8dcf4');g.addColorStop(1,'#c9bdf0');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  for(let i=0;i<9;i++){
   const x=640+Math.sin(t*.00022*Number($('speed').value)+i*2.1)*430;
   const y=360+Math.cos(t*.00017*Number($('speed').value)+i*1.7)*245;
@@ -88,13 +88,13 @@ function draw(t=performance.now(),level=0){
  for(let i=0;i<bars;i++){
   const a=i/bars*Math.PI*2-Math.PI/2,wave=.5+.5*Math.sin(i*.37+t*.003),pulse=amp*(.35+wave*.95),len=8+pulse*105;
   const x1=cx+Math.cos(a)*base,y1=cy+Math.sin(a)*base,x2=cx+Math.cos(a)*(base+len),y2=cy+Math.sin(a)*(base+len);
-  const grad=ctx.createLinearGradient(x1,y1,x2,y2);grad.addColorStop(0,'#ff9fca');grad.addColorStop(.52,'#a8b8ff');grad.addColorStop(1,'#8ce3ef');
+  const grad=ctx.createLinearGradient(x1,y1,x2,y2);grad.addColorStop(0,'#f3b2d0');grad.addColorStop(.52,'#c2c9f0');grad.addColorStop(1,'#a9dce5');
   ctx.strokeStyle=grad;ctx.lineWidth=2.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
  }
  ctx.strokeStyle='#ffffffaa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,base+5,0,Math.PI*2);ctx.stroke();
  ctx.save();ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.clip();
  if(img){const scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,cx-w/2,cy-h/2,w,h)}
- else{const g=ctx.createLinearGradient(cx-size/2,cy-size/2,cx+size/2,cy+size/2);g.addColorStop(0,'#ffd3e8');g.addColorStop(1,'#b8dfff');ctx.fillStyle=g;ctx.fillRect(cx-size/2,cy-size/2,size,size);ctx.fillStyle='#fff';ctx.font='70px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♡',cx,cy)}
+ else{const g=ctx.createLinearGradient(cx-size/2,cy-size/2,cx+size/2,cy+size/2);g.addColorStop(0,'#f8d8e8');g.addColorStop(1,'#d9eaf7');ctx.fillStyle=g;ctx.fillRect(cx-size/2,cy-size/2,size,size);ctx.fillStyle='#fff';ctx.font='70px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♡',cx,cy)}
  ctx.restore();ctx.strokeStyle='#fff';ctx.lineWidth=8;ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.stroke();
 }
 function loop(t){let level=0;if(analyser&&recording){const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];level=Math.min(1.8,(sum/data.length)/75)}draw(t,level);raf=requestAnimationFrame(loop)}
