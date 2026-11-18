@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ボイスムービーつくーる</title>
 <style>
-:root{--pink:#ff9ecb;--blue:#91dfff;--purple:#b9a0ff;--ink:#554b69}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:var(--ink);background:linear-gradient(135deg,#fff0f7,#effaff 48%,#f4efff)}
+:root{--pink:#f1cddd;--blue:#d4e8f5;--purple:#ddd5f2;--ink:#554b69}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:var(--ink);background:linear-gradient(135deg,#fff5f9,#f4f9fd 48%,#f7f4fc)}
 header{text-align:center;padding:25px 16px 12px}h1{margin:0;font-size:clamp(24px,4vw,36px);letter-spacing:.06em}header p{margin:7px 0;color:#887c9d;font-size:13px}
 main{width:min(1180px,94vw);margin:0 auto 36px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:20px}
 .panel{background:#ffffffc9;border:1px solid #fff;border-radius:23px;padding:18px;box-shadow:0 12px 36px #9d8cc51a;backdrop-filter:blur(12px)}
-.preview-wrap{width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f8eafa;position:relative}
+.preview-wrap{width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f7eff7;position:relative}
 canvas{width:100%;height:100%;display:block}
 .preview-note{font-size:12px;color:#9388a4;margin:10px 2px 0}
 h2{font-size:16px;margin:0 0 13px}section+section{margin-top:20px}
@@ -68,12 +68,12 @@ function roundedBackground(t){
  // Keep every captured frame fully opaque; avoid VP9 alpha-channel fade/compositing on mobile players.
  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
  const w=1280,h=720;const g=ctx.createLinearGradient(0,0,w,h);
- g.addColorStop(0,'#f7b6d2');g.addColorStop(.48,'#b8dcf4');g.addColorStop(1,'#c9bdf0');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ g.addColorStop(0,'#f8dce9');g.addColorStop(.48,'#e5effb');g.addColorStop(1,'#e4e2f8');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  for(let i=0;i<9;i++){
   const x=640+Math.sin(t*.00022*Number($('speed').value)+i*2.1)*430;
   const y=360+Math.cos(t*.00017*Number($('speed').value)+i*1.7)*245;
   const r=110+(i%3)*34,rg=ctx.createRadialGradient(x,y,0,x,y,r);
-  rg.addColorStop(0,['#ffb5d718','#b9dfff18','#c9b5ff18'][i%3]);rg.addColorStop(1,'#ffffff00');ctx.fillStyle=rg;ctx.fillRect(x-r,y-r,r*2,r*2);
+  rg.addColorStop(0,['#f5dce918','#e2effb18','#e5def618'][i%3]);rg.addColorStop(1,'#ffffff00');ctx.fillStyle=rg;ctx.fillRect(x-r,y-r,r*2,r*2);
  }
  for(let i=0;i<38;i++){
   const x=(i*173+Math.sin(t*.0003+i)*32)%1280;const y=(i*97+t*.012*(.4+(i%4)*.2))%720;
@@ -88,13 +88,13 @@ function draw(t=performance.now(),level=0){
  for(let i=0;i<bars;i++){
   const a=i/bars*Math.PI*2-Math.PI/2,wave=.5+.5*Math.sin(i*.37+t*.003),pulse=amp*(.35+wave*.95),len=8+pulse*105;
   const x1=cx+Math.cos(a)*base,y1=cy+Math.sin(a)*base,x2=cx+Math.cos(a)*(base+len),y2=cy+Math.sin(a)*(base+len);
-  const grad=ctx.createLinearGradient(x1,y1,x2,y2);grad.addColorStop(0,'#f3b2d0');grad.addColorStop(.52,'#c2c9f0');grad.addColorStop(1,'#a9dce5');
+  const grad=ctx.createLinearGradient(x1,y1,x2,y2);grad.addColorStop(0,'#e9c9da');grad.addColorStop(.52,'#d8dced');grad.addColorStop(1,'#cde3e9');
   ctx.strokeStyle=grad;ctx.lineWidth=2.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
  }
  ctx.strokeStyle='#ffffffaa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,base+5,0,Math.PI*2);ctx.stroke();
  ctx.save();ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.clip();
  if(img){const scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,cx-w/2,cy-h/2,w,h)}
- else{const g=ctx.createLinearGradient(cx-size/2,cy-size/2,cx+size/2,cy+size/2);g.addColorStop(0,'#f8d8e8');g.addColorStop(1,'#d9eaf7');ctx.fillStyle=g;ctx.fillRect(cx-size/2,cy-size/2,size,size);ctx.fillStyle='#fff';ctx.font='70px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♡',cx,cy)}
+ else{const g=ctx.createLinearGradient(cx-size/2,cy-size/2,cx+size/2,cy+size/2);g.addColorStop(0,'#f3dfeb');g.addColorStop(1,'#dceaf6');ctx.fillStyle=g;ctx.fillRect(cx-size/2,cy-size/2,size,size);ctx.fillStyle='#fff';ctx.font='70px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♡',cx,cy)}
  ctx.restore();ctx.strokeStyle='#fff';ctx.lineWidth=8;ctx.beginPath();ctx.arc(cx,cy,size/2,0,Math.PI*2);ctx.stroke();
 }
 function loop(t){let level=0;if(analyser&&recording){const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];level=Math.min(1.8,(sum/data.length)/75)}draw(t,level);raf=requestAnimationFrame(loop)}
