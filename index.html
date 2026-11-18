@@ -139,7 +139,7 @@ $('export').onclick=async()=>{
   recording=false;analyser=null;combined.getTracks().forEach(t=>t.stop());src.disconnect();await ac.close();
   setStatus('MOV変換エンジンを読み込んでいます（初回は時間がかかります）…');const ff=await loadFFmpeg();
   ff.FS('writeFile','input.webm',new Uint8Array(await webm.arrayBuffer()));setStatus('MOVに変換中…');
-  await ff.run('-i','input.webm','-c:v','libx264','-pix_fmt','yuv420p','-preset','ultrafast','-crf','20','-c:a','aac','-b:a','192k','-movflags','+faststart','output.mov');
+  await ff.run('-i','input.webm','-vf','setparams=range=limited,format=yuv420p','-c:v','libx264','-pix_fmt','yuv420p','-color_range','tv','-colorspace','bt709','-color_primaries','bt709','-color_trc','bt709','-preset','ultrafast','-crf','18','-c:a','aac','-b:a','192k','-movflags','+faststart','output.mov');
   const out=ff.FS('readFile','output.mov'),mov=new Blob([out.buffer],{type:'video/quicktime'}),url=URL.createObjectURL(mov),a=document.createElement('a');a.href=url;a.download='voice-movie.mov';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);setStatus('完成しました！ voice-movie.mov を保存しました。');
  }catch(err){console.error(err);setStatus('書き出しに失敗しました。'+(err&&err.message?' ('+err.message+')':'')+' ブラウザのコンソールも確認してください。')}
  finally{$('export').disabled=false}
