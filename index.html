@@ -136,6 +136,7 @@ $('export').onclick=async()=>{
   const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';const mr=new MediaRecorder(combined,{mimeType:mime,videoBitsPerSecond:6500000});
   const parts=[];mr.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};const finished=new Promise(resolve=>mr.onstop=()=>resolve(new Blob(parts,{type:'video/webm'})));
   audio.currentTime=0;await ac.resume();await audio.play();mr.start(250);await new Promise(resolve=>{audio.onended=resolve});mr.stop();const webm=await finished;
+  {const checkUrl=URL.createObjectURL(webm),checkLink=document.createElement('a');checkLink.href=checkUrl;checkLink.download='voice-movie-before-conversion.webm';checkLink.click();setTimeout(()=>URL.revokeObjectURL(checkUrl),60000)}
   recording=false;analyser=null;combined.getTracks().forEach(t=>t.stop());src.disconnect();await ac.close();
   setStatus('MOV変換エンジンを読み込んでいます（初回は時間がかかります）…');const ff=await loadFFmpeg();
   ff.FS('writeFile','input.webm',new Uint8Array(await webm.arrayBuffer()));setStatus('MOVに変換中…');
